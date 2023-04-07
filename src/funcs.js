@@ -1,4 +1,4 @@
-import TodoListJSON from '../build/contracts/TodoList.json';
+import ThriftStore from '../build/contracts/ThriftStore.json';
 import Web3 from 'web3';
 var contract = require('@truffle/contract');
 
@@ -6,24 +6,37 @@ export const load = async () => {
     await loadWeb3();
     const addressAccount = await loadAccount();
     const { todoContract, tasks } = await loadContract(addressAccount);
-
+    console.error({ todoContract, tasks });
     return { addressAccount, todoContract, tasks };
 };
 
+export const postTasks = async ( itemName,
+    itemDescription,
+    itemPrice,
+    itemPickupLocation, addressAccount) => {
+  await todoContract.postAd( itemName,
+    itemDescription,
+    itemPrice,
+    itemPickupLocation, {from: addressAccount});
+};
+
+//view listing modify below code
 const loadTasks = async (todoContract, addressAccount) => {
-    const tasksCount = await todoContract.tasksCount(addressAccount);
+    const tasksCount = await todoContract.getAllItemIdsPostedByUser({from: addressAccount});
     const tasks = [];
     for (var i = 0; i < tasksCount; i++) {
-        const task = await todoContract.tasks(addressAccount, i);
+        const task = await todoContract.getItem(tasksCount[i]);
         tasks.push(task);
     }
+    console.error(tasks);
     return tasks
 };
 
 const loadContract = async (addressAccount) => {
-    const theContract = contract(TodoListJSON);
+    const theContract = contract(ThriftStore);
     theContract.setProvider(web3.eth.currentProvider);
     const todoContract = await theContract.deployed();
+    await postTasks(todoContract, addressAccount);
     const tasks = await loadTasks(todoContract, addressAccount);
 
     return { todoContract, tasks }
